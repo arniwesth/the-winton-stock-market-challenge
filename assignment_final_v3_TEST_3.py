@@ -1,14 +1,10 @@
-# %%
-# TODO:
-# Imputed values should be marked by a new column with 0/1 for "not imputed" / "imputed"
-
 # %% [markdown]
 # <h1><center><b>The Winton Stock Market Challenge Kaggle competition</b></center></h1>
 
 # %% [markdown]
 ## **Content**:
 #
-# - [Abstract](#abstract)
+# - -  [Abstract](#abstract)
 
 # - 1. [Introduction](#introduction)
 #   - 1.1 [Data Overview](#data_overview)
@@ -178,6 +174,16 @@
 ### **2.1 Imports** <a class="anchor" id="imports"></a>
 
 # %%
+import os
+import random
+import numpy as np
+import pandas as pd
+import pandas_profiling as pp
+import cufflinks as cf
+import seaborn as sns
+import matplotlib.pyplot as plt
+import scikitplot as skplt
+
 from sklearn.base import BaseEstimator
 from sklearn.svm import SVR
 from sklearn.preprocessing import OrdinalEncoder
@@ -188,9 +194,6 @@ from sklearn.preprocessing import PolynomialFeatures
 from sklearn.preprocessing import PowerTransformer
 from sklearn.feature_selection import SelectKBest
 from sklearn.pipeline import FeatureUnion
-from IPython import get_ipython
-from IPython.display import display, HTML
-
 from sklearn.base import TransformerMixin
 from sklearn.model_selection import GridSearchCV
 from sklearn.model_selection import RandomizedSearchCV
@@ -212,17 +215,20 @@ from sklearn.multioutput import MultiOutputRegressor
 from sklearn.impute import SimpleImputer
 from sklearn.compose import ColumnTransformer
 from sklearn.compose import TransformedTargetRegressor
-from xgboost import XGBRegressor
 from sklearn.linear_model import Ridge
 from sklearn.svm import LinearSVR
+from sklearn.experimental import enable_iterative_imputer
+from sklearn.impute import IterativeImputer
+from sklearn.cluster import KMeans
 
-import os
-import random
-import numpy as np
-import pandas as pd
-import seaborn as sns
-import matplotlib.pyplot as plt
+from mlxtend.feature_selection import ColumnSelector
+from mlbox.encoding import Categorical_encoder
+
+from IPython import get_ipython
+from IPython.display import display, HTML
+from yellowbrick.features import Rank2D
 from collections import defaultdict
+from xgboost import XGBRegressor
 
 # %% [markdown]
 ### **2.2. Global Vars** <a class="anchor" id="global_vars"></a>
@@ -234,12 +240,12 @@ from collections import defaultdict
 DEBUG = False
 
 # Define visualization mode
-ANALYSE_DATA = True
-#ANALYSE_DATA = False
-SHOWPLOTS = True
-#SHOWPLOTS = False
-SHOWPLOTS_PROCCESED = True
-#SHOWPLOTS_PROCCESED = False
+#ANALYSE_DATA = True
+ANALYSE_DATA = False
+#SHOWPLOTS = True
+SHOWPLOTS = False
+#SHOWPLOTS_PROCCESED = True
+SHOWPLOTS_PROCCESED = False
 
 # Define grid search mode
 #GRIDSEARCH = False
@@ -377,8 +383,12 @@ def analyse_df(name, df_train, df_test=None, percentage=True):
 
 
 if ANALYSE_DATA:
+    # OBS: This is *VERY* compute intensive
+    #train_X_Y_df.profile_report()
+    #quit()
+
     # OBS: This is very compute intensive
-    print('Analysing data (this will take a while)...')
+    print('Analysing data (this will take a while)...')    
     missing_data = analyse_df('Missing', train_X_Y_df)
     unique_data = analyse_df('Unique', train_X_Y_df)
     balanced_data = analyse_df('Imbalance', train_X_Y_df)
@@ -452,6 +462,7 @@ def plot(train_df: pd.DataFrame, test_df: pd.DataFrame, features: list,
         test_data_df = pd.DataFrame(test_data, columns=features)
     else:
         imputer = SimpleImputer(strategy='constant')
+        #imputer = IterativeImputer(max_iter=10, random_state=0) #SLOW!
         train_data_df = pd.DataFrame(imputer.fit_transform(
             train_df[features]), columns=features)
         test_data_df = pd.DataFrame(imputer.fit_transform(
@@ -469,11 +480,13 @@ if SHOWPLOTS:
     data_plot = train_X_Y_df.sample(frac=0.1, random_state=0)
     imputer = SimpleImputer(strategy='constant')
     data_plot_no_nan = pd.DataFrame(imputer.fit_transform(data_plot), columns=features_targets)
+
     num_features = ['Feature_1', 'Feature_2', 'Feature_3', 'Feature_4', 'Feature_6',
                     'Feature_11', 'Feature_14', 'Feature_15',
                     'Feature_17', 'Feature_18', 'Feature_19',
                     'Feature_21', 'Feature_22', 'Feature_23', 'Feature_24', 'Feature_25',
                     'Ret_MinusTwo', 'Ret_MinusOne', 'Ret_Agg']
+    
     cat_features = ['Feature_5', 'Feature_7', 'Feature_8', 'Feature_9', 'Feature_10',
                     'Feature_12', 'Feature_13', 'Feature_16', 'Feature_20']
 
@@ -526,6 +539,7 @@ if SHOWPLOTS:
 # - [<font color=blue>Feature_3</font> - <font color=blue>Feature_11</font>] correlates with [<font color=blue>Feature_17</font> - <font color=blue>Feature_25</font>]
 # - [<font color=blue>Feature_17</font> - <font color=blue>Feature_25</font>] correlates with [<font color=blue>Feature_17</font> - <font color=blue>Feature_25</font>]
 #
+#
 # within the numerical features. This is probably not coincidental, and it is likely that an optimal solution needs to take advantage of these relationships.
 # In this solution, however, we will not investigate it further. We also observer that most of the feature distributions does not
 # appear to be gaussian. We will deal with these issues in the [Data Preprocessing](#data_preprocessing) section.
@@ -545,19 +559,25 @@ if SHOWPLOTS:
 
 # %%
 # Define final features
-num_features_final = ['Feature_2', 'Feature_3', 'Feature_4', 'Feature_6',
-                      'Feature_11', 'Feature_14',
-                      'Feature_17', 'Feature_18', 'Feature_19',
-                      'Feature_21', 'Feature_22', 'Feature_23', 'Feature_24', 'Feature_25',
-                      'Ret_MinusTwo', 'Ret_MinusOne', 'Ret_Agg', 'Ret_Agg_Std',
-                      'Ret_Std']
+#num_features_final = ['Feature_2', 'Feature_3', 'Feature_4', 'Feature_6', 'Feature_11', 
+#                      'Feature_14', 'Feature_17', 'Feature_18', 'Feature_19', 'Feature_21',
+#                      'Feature_22', 'Feature_23', 'Feature_24', 'Feature_25', 'Ret_MinusTwo',
+#                      'Ret_MinusOne', 'Ret_Agg', 'Ret_Agg_Std', 'Ret_Std']
+
+num_features_final = ['Feature_2', 'Feature_3', 'Feature_4', 'Feature_11', 
+                      'Feature_14', 'Feature_19', 'Feature_21',
+                      'Feature_22', 'Feature_24', 'Ret_MinusTwo',
+                      'Ret_MinusOne', 'Ret_Agg', 'Ret_Agg_Std', 'Ret_Std']
+
+num_features_split_final = ['Feature_6', 'Feature_17', 'Feature_18', 'Feature_23', 'Feature_25']
 
 cat_features_ordinal_final = ['Feature_13']
 
-cat_features_nominal_final = ['Feature_1', 'Feature_5', 'Feature_7', 'Feature_8', 'Feature_9', 'Feature_10',
-                              'Feature_12', 'Feature_15', 'Feature_16', 'Feature_20']
+cat_features_nominal_final = ['Feature_1', 'Feature_5', 'Feature_7', 'Feature_8', 'Feature_9',
+                              'Feature_10', 'Feature_12', 'Feature_15', 'Feature_16', 'Feature_20']
 
-cat_features_final = cat_features_ordinal_final + cat_features_nominal_final
+num_features_all_final = num_features_final + num_features_split_final
+cat_features_final = cat_features_ordinal_final + num_features_split_final + cat_features_nominal_final
 features_final = num_features_final + cat_features_final
 
 train_X_df = train_df[features_final]
@@ -602,37 +622,140 @@ class CutOff(TransformerMixin):
         X[X < -3] = -3
         return X
 
+class MultivariateImputer(TransformerMixin):
+    
+    def fit(self, X, y=None, **fit_params):
+        self.colnames = X.columns
+        self.imputer = IterativeImputer(max_iter=10, random_state=0)
+        self.imputer.fit(X)
+        return self
+
+    def transform(self, X, y=None, **fit_params):
+        X = self.imputer.transform(X)
+        X_df = pd.DataFrame(X, columns=self.colnames)        
+        return X_df
+
+class Split(TransformerMixin):    
+
+    def __init__(self, n_clusters=2):
+        self.n_clusters=n_clusters        
+
+    def fit(self, X, y=None, **fit_params):
+        self.kmeans = []
+        for i in range(X.shape[1]):
+            self.kmeans.append(KMeans(n_clusters=self.n_clusters, random_state=0))
+            self.kmeans[i].fit(X[:,i].reshape(-1,1))
+        return self
+
+    def transform(self, X, y=None, **fit_params):
+        x = np.zeros((X.shape[0], X.shape[1]*self.n_clusters))
+        k = 0
+        for i in range(X.shape[1]):
+            c = self.kmeans[i].predict(X[:,i].reshape(-1,1))            
+            for j in range(X.shape[0]):
+                x[j, k + c[i]] = X[j,i]
+            k = k + self.n_clusters
+        return x
+
+class FeatureInteractions(TransformerMixin):
+
+    def __init__(self):
+        return None
+        
+    def fit(self, X, y=None, **fit_params):
+        return self
+
+    def transform(self, X, y=None, **fit_params):        
+        return self
+
+class ToDataFrame(TransformerMixin):    
+
+    def fit(self, X, y=None, **fit_params):
+        return self
+
+    def transform(self, X, y=None, **fit_params):
+        X_df = pd.DataFrame(X)
+        return X_df
+
+all_transformer = Pipeline(steps=[
+    #('imputer', SimpleImputer(strategy='constant')),
+    ('imputer', IterativeImputer(max_iter=10, random_state=0)), #SLOW!
+])
+
+from sklearn.decomposition import TruncatedSVD
+
 # Preprocessing for numerical data
 num_transformer = Pipeline(steps=[
-    ('imputer', SimpleImputer(strategy='constant')),
-    ('scale', RobustScaler(quantile_range=[5, 95])),
+    #('imputer', SimpleImputer(strategy='constant')),
+    #('imputer', IterativeImputer(max_iter=10, random_state=0)), #SLOW!    
+    ('scale', RobustScaler(quantile_range=[5, 95])),        
+    #('split', Split()),    
     ('quantile', QuantileTransformer(n_quantiles=300, output_distribution='normal', random_state=0)),
     ('cutoff', CutOff()),  # Cut off at 3 standard deviations
-    ('norm', Normalizer(norm='l2'))
+    #('pca', PCA(whiten=True, random_state=0)),
+    #('norm', Normalizer(norm='l2'))
+])
+
+num_transformer_split = Pipeline(steps=[
+    #('imputer', SimpleImputer(strategy='constant')),
+    #('imputer', IterativeImputer(max_iter=10, random_state=0)), #SLOW!
+    ('scale', RobustScaler(quantile_range=[5, 95])),
+    #('split', Split()),
+    ('split', Split(2)),
+    #('bins', KBinsDiscretizer(n_bins=2, encode='ordinal', strategy='kmeans')),
+    ('quantile', QuantileTransformer(n_quantiles=300, output_distribution='normal', random_state=0)),
+    ('cutoff', CutOff()),  # Cut off at 3 standard deviations
+    #('pca', TruncatedSVD(n_components=5, random_state=0)),
+    #('norm', Normalizer(norm='l2'))
 ])
 
 # Preprocessing for nominal categorical data
 cat_transformer_nominal = Pipeline(steps=[
-    ('imputer', SimpleImputer(strategy='constant')),
-    ('pca', PCA(whiten=True, random_state=0)),
-    ('bins', KBinsDiscretizer(n_bins=100, encode='onehot', strategy='quantile')),
-    ('norm', Normalizer(norm='l2')),
+    #('imputer', SimpleImputer(strategy='constant')),
+    #('imputer', IterativeImputer(max_iter=10, random_state=0)), #SLOW!
+    ('pca', PCA(whiten=True, random_state=0)),    
+    ('bins', KBinsDiscretizer(n_bins=100, encode='onehot', strategy='quantile')),    
+    #('todf', ToDataFrame()),
+    #('cat_enc', Categorical_encoder(strategy='entity_embedding', verbose=False)),
+    #('quantile', QuantileTransformer(n_quantiles=300, output_distribution='normal', random_state=0)),
+    #('norm', Normalizer(norm='l2')),
 ])
 
 # Preprocessing for ordinal categorical data
 cat_transformer_ordinal = Pipeline(steps=[
-    ('imputer', SimpleImputer(strategy='constant')),
+    #('imputer', SimpleImputer(strategy='constant')),
     ('bins', KBinsDiscretizer(n_bins=100, encode='ordinal', strategy='quantile')),
-    ('norm', Normalizer(norm='l2')),
+    #('todf', ToDataFrame()),
+    #('cat_enc', Categorical_encoder(strategy='entity_embedding', verbose=False)),
+    #('quantile', QuantileTransformer(n_quantiles=300, output_distribution='normal', random_state=0)),
+    #('norm', Normalizer(norm='l2')),
 ])
 
 # Combined preprocessing for numerical and categorical data
-preprocessor_X = ColumnTransformer(
+# TODO: Test seperate models on numerical and categorical features
+# TODO: Test ensemble of LinearSVR and SVR
+# TODO: Try create a model for each value of 'Feature_7' in train set
+#       and use nearest value of 'Feature_7' in test set to select model?
+# DONE: DOES IMPROVE! Try split some of the numerical features into 2
+# DONE: DOES IMPROVE! Try impute missing values in numerical featues from correlated features
+# DONE: DOES NOT IMPROVE! Try to predict ret_plustwo using prediction of ret_plusone 
+
+preprocessor_X0 = Pipeline(steps=[    
+    #('imputer', SimpleImputer(strategy='constant')), #Faster!
+    ('imputer', MultivariateImputer())
+])
+preprocessor_X1 = ColumnTransformer(
     transformers=[
-        ('num', num_transformer, num_features_final),        
-        ('cat_nom', cat_transformer_nominal, cat_features_nominal_final),
-        ('cat_ord', cat_transformer_ordinal, cat_features_ordinal_final)        
-    ])
+        #('all', all_transformer, features_final),
+        ('num', num_transformer, num_features_final),
+        ('num_split', num_transformer_split, num_features_split_final),        
+        #('cat_nom', cat_transformer_nominal, cat_features_nominal_final),
+        #('cat_ord', cat_transformer_ordinal, cat_features_ordinal_final)        
+    ],
+)
+#preprocessor_X2 = Pipeline(steps=[('norm', Normalizer(norm='l2'))]) 
+preprocessor_X2 = Pipeline(steps=[('todf', ToDataFrame())])    
+preprocessor_X = Pipeline(steps=[('X0', preprocessor_X0), ('X1', preprocessor_X1)]) #, ('X2', preprocessor_X2)])
 
 # Testing preprocessor
 preprocessor_X_shape = preprocessor_X.fit_transform(train_X_df).shape
@@ -685,9 +808,10 @@ if (SHOWPLOTS_PROCCESED):
 # %%
 if (SHOWPLOTS_PROCCESED):
     # Distributions of numerical features after preprocssesing
-    plot(train_X_df, test_X_df, features=num_features_final, transformer=num_transformer,
+    trans = Pipeline(steps=[('impute', preprocessor_X0), ('num_feat', num_transformer)])
+    plot(train_X_df, test_X_df, features=num_features_final, transformer=trans, #transformer=num_transformer,
          label='After preproccssing numerical features: Distributions:')
-
+         
 # %%
 if (SHOWPLOTS_PROCCESED):
     # Regression plots of numerical features after preprocssesing
@@ -762,12 +886,31 @@ if (SHOWPLOTS_PROCCESED):
 print('Building model...')
 
 # Define initial model
-model = LinearSVR(epsilon=0.0, C=0.0005, loss='squared_epsilon_insensitive', random_state=0)  # 1727.860
+#model = LinearSVR(epsilon=0.0, C=0.0005, loss='squared_epsilon_insensitive', random_state=0)  # PLB=1727.860
+model0 = LinearSVR(epsilon=0.0, C=0.00005, loss='squared_epsilon_insensitive', random_state=0) # PLB=1727.85762, MAE=0.015532245903394313, WMAE=27817.21890266377
+#model0 = LinearSVR(epsilon=0.0, C=0.0001, loss='squared_epsilon_insensitive', random_state=0)  
+
+from sklearn.svm import SVR
+model1 = SVR(kernel='linear', C=0.00005)
+
+#from catboost import CatBoostRegressor
+#model = CatBoostRegressor(loss_function='MAE', l2_leaf_reg=0.01)
+
+#from lightning.regression import SVRGRegressor
+#model = SVRGRegressor()
+from sklearn.ensemble import VotingRegressor 
 
 # Define model pipeline for multi output regression
-multi_out_reg = MultiOutputRegressor(model)
-model_pipeline = Pipeline(steps=[('preprocessor', preprocessor_X), ('multioutreg', multi_out_reg)])
-estimator = TransformedTargetRegressor(regressor=model_pipeline, transformer=preprocessor_Y)
+#multi_out_reg = MultiOutputRegressor(model)
+#model_pipeline = Pipeline(steps=[('preprocessor', preprocessor_X), ('multioutreg', multi_out_reg)])
+multi_out_reg0 = MultiOutputRegressor(model0)
+multi_out_reg1 = MultiOutputRegressor(model1)
+#ensemble = VotingRegressor(estimators=[('model0', multi_out_reg0)]) #), ('model1', multi_out_reg1)])
+#model_pipeline = Pipeline(steps=[('preprocessor', preprocessor_X), ('ensemble', ensemble)])
+model_pipeline0 = Pipeline(steps=[('preprocessor', preprocessor_X), ('multioutreg', multi_out_reg0)])
+estimator0 = TransformedTargetRegressor(regressor=model_pipeline0, transformer=preprocessor_Y)
+model_pipeline1 = Pipeline(steps=[('preprocessor', preprocessor_X), ('multioutreg', multi_out_reg1)])
+estimator1 = TransformedTargetRegressor(regressor=model_pipeline1, transformer=preprocessor_Y)
 
 def WA(a, axis, weight):
     # Adapted from function_base.py
@@ -787,42 +930,45 @@ def WMAE(y_true, y_pred, sample_weight):
 
     return avg
 
-if GRIDSEARCH:
-    # Define grid parameters to search
-    grid_params = {
-        'regressor__multioutreg__estimator__C': [0.0005, 0.001, 0.0015, 0.002]
-    }
+def FitModel(estimator : TransformedTargetRegressor):
+    if GRIDSEARCH:
+        # Define grid parameters to search
+        grid_params = {
+            #'regressor__multioutreg__estimator__C': [0.0005, 0.001, 0.0015, 0.002]
+        }
 
-    # Define CV by grouping on 'Feature_7'
-    # See: https://stats.stackexchange.com/questions/95797/how-to-split-the-dataset-for-cross-validation-learning-curve-and-final-evaluat
-    #      http://www.jmlr.org/papers/volume11/cawley10a/cawley10a.pdf
-    group = train_X_df['Feature_7'].values
-    cv = list(GroupKFold(n_splits=5).split(train_X_df, train_Y_df, group))
+        # Define CV by grouping on 'Feature_7'
+        # See: https://stats.stackexchange.com/questions/95797/how-to-split-the-dataset-for-cross-validation-learning-curve-and-final-evaluat
+        #      http://www.jmlr.org/papers/volume11/cawley10a/cawley10a.pdf
+        group = train_X_df['Feature_7'].values
+        cv = list(GroupKFold(n_splits=5).split(train_X_df, train_Y_df, group))
 
-    # Define grid search scoring metric
-    scoring = 'neg_mean_absolute_error'
+        # Define grid search scoring metric
+        scoring = 'neg_mean_absolute_error'
 
-    # Define grid search specified scoring and cross-validation generator
-    print('Running grid searc CV...')
-    gd_sr = GridSearchCV(estimator=estimator,
-                         param_grid=grid_params,
-                         scoring=scoring,
-                         cv=cv,
-                         # n_jobs=8,
-                         refit=True)
+        # Define grid search specified scoring and cross-validation generator
+        print('Running grid searc CV...')
+        gd_sr = GridSearchCV(estimator=estimator,
+                            param_grid=grid_params,
+                            scoring=scoring,
+                            cv=cv,
+                            # n_jobs=8,
+                            refit=True)
 
-    # Apply grid search and get parameters for best result
-    gd_sr.fit(train_X_df, train_Y_df)
-    best_params = gd_sr.best_params_
-    best_estimator = gd_sr.best_estimator_
-    score = -gd_sr.best_score_
+        # Apply grid search and get parameters for best result
+        gd_sr.fit(train_X_df, train_Y_df)
+        best_params = gd_sr.best_params_
+        best_estimator = gd_sr.best_estimator_
+        score = -gd_sr.best_score_
 
-    print(f'Best parameters = {gd_sr.best_params_}')
-    print(f'Best MAE = {score}')
+        print(f'Best parameters = {gd_sr.best_params_}')
+        print(f'Best MAE = {score}')
 
-else:
-    estimator.fit(train_X_df, train_Y_df)
-    best_estimator = estimator
+    else:
+        estimator.fit(train_X_df, train_Y_df)
+        best_estimator = estimator
+    
+    return best_estimator
 
 print('Done building model')
 
@@ -833,8 +979,48 @@ print('Done building model')
 # baseline model of just predicting the returns as the mean of the returns in the training data.
 
 # %%
+#FIT_BASE_MODELS= True
+FIT_BASE_MODELS= False
+import pickle 
+if FIT_BASE_MODELS:
+    # Fit base models
+    print('Fitting model 0...')
+    best_estimator0 = FitModel(estimator0)        
+    print('Fitting model 1...')
+    best_estimator1 = FitModel(estimator1)    
+
+    # Predict
+    pred_train_Y0 = best_estimator0.predict(train_X_df)
+    pred_train_Y1 = best_estimator1.predict(train_X_df)
+    pred_train_Y10 = np.concatenate((pred_train_Y0, pred_train_Y1), axis=1)
+    
+    # Save to file
+    filehandler = open('best_estimator0.obj', 'wb')
+    pickle.dump(best_estimator0, filehandler)
+    filehandler = open('best_estimator1.obj', 'wb')
+    pickle.dump(best_estimator1, filehandler)
+    np.savetxt('pred_train_Y10.csv', pred_train_Y10, delimiter=',')
+else:
+    # Load from file
+    file_pi2 = open('best_estimator0.obj', 'rb') 
+    best_estimator0 = pickle.load(file_pi2)
+    file_pi2 = open('best_estimator1.obj', 'rb') 
+    best_estimator1 = pickle.load(file_pi2)
+    pred_train_Y10 = np.loadtxt('pred_train_Y10.csv', delimiter=',')
+
+print('Fitting final model ...')
+from mlxtend.regressor import StackingRegressor
+modelFinal = MultiOutputRegressor(LinearSVR(epsilon=0.0, C=1, loss='squared_epsilon_insensitive', random_state=0))
+#estimatorFinal = modelFinal # TransformedTargetRegressor(regressor=modelFinal, transformer=preprocessor_Y)
+estimatorFinal = StackingRegressor(regressors=[best_estimator0, best_estimator1], meta_regressor=modelFinal)
+#estimatorFinal.fit(X=pred_train_Y10[:, [0, 1]], y=train_Y_df)
+estimatorFinal.fit(X=train_X_df, y=train_Y_df)
+#pred_train_Y = estimatorFinal.predict(pred_train_Y10[:, [0, 1]])
+pred_train_Y = estimatorFinal.predict(train_X_df)
+#pred_train_Y = (pred_train_Y0 + pred_train_Y1)/2.0
+
 # Predict on train and validation data
-pred_train_Y = best_estimator.predict(train_X_df)
+#pred_train_Y = best_estimator.predict(train_X_df)
 
 # Evaluate predictions on train and validation data and compare with baseline mean prediction
 mean_Y = [0, 0]
@@ -852,7 +1038,32 @@ print(f'WMAE of fitted model: {train_mae}')
 print(f'WMAE of baseline model: {mean_mae}')
 
 # Predict on test data
-pred_test_Y = best_estimator.predict(test_X_df)
+if FIT_BASE_MODELS:
+    # Predict
+    pred_test_Y0 = best_estimator0.predict(test_X_df)
+    pred_test_Y1 = best_estimator1.predict(test_X_df)
+    pred_test_Y10 = np.concatenate((pred_test_Y0, pred_test_Y1), axis=1)
+    # Save to file
+    np.savetxt('pred_test_Y10.csv', pred_test_Y10, delimiter=',')
+else:
+    # Load from file        
+    pred_test_Y10 = np.loadtxt('pred_test_Y10.csv', delimiter=',')
+
+pred_test_Y = estimatorFinal.predict(test_X_df)
+#pred_test_Y = (pred_test_Y0 + pred_test_Y1)/2.0
+
+#pred_test_Y = best_estimator.predict(test_X_df)
+
+#import eli5
+#eli5.show_weights(model, feature_names=range(0,24))
+#eli5.show_prediction(model, doc=test_X_df.iloc[0])
+
+#Pseudo regression
+#pse_X = pd.concat([train_X_df, test_X_df], axis=0)
+#test_Y_df = pd.DataFrame(pred_test_Y, columns=train_Y_df.columns)
+#pse_Y = pd.concat([train_Y_df, test_Y_df], axis=0)
+#best_estimator.fit(pse_X, pse_Y)
+#pred_test_Y = best_estimator.predict(test_X_df)
 
 # %% [markdown]
 # We observe that the model seems to perform significantly better than the baseline model.

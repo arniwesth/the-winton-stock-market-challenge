@@ -54,8 +54,8 @@
 # skillsets in. Also, we note that we are here to win a Kaggle competition - not to make an actually viable 
 # trading algorithm. 
 #
-# There where <font color=green>832</font> teams participating in the Kaggle competition. This solution has a Private Score of <font color=green>1727.86647</font> and
-# a Public Score of <font color=green>1769.92199</font> and would have ranked as number <font color=green>4</font> (top <font color=green>0.5%</font>) on the Private Leaderboard.
+# There where 832 teams participating in the Kaggle competition. This solution has a Private Score of 1727.86647 and
+# a Public Score of 1769.92199 and would have ranked as number 4 (top 0.5%) on the Private Leaderboard.
 
 # %% [markdown]
 ## **1. Introduction** <a class="anchor" id="introduction"></a>
@@ -65,23 +65,23 @@
 #
 # In this competition, the challenge is to predict the return of a stock, given the history of the past few days.
 #
-# We provide <font color=green>5-day windows of time</font>, days <font color=blue>D-2</font>, <font color=blue>D-1</font>,
-# <font color=blue>D</font>, <font color=blue>D+1</font>, and <font color=blue>D+2</font>. You are given returns in days
-# <font color=blue>D-2</font>, <font color=blue>D-1</font>, and
-# part of day <font color=blue>D</font>, and you are asked to predict the returns in the rest of day <font color=red>D</font>, and in days
-# <font color=red>D+1</font> and <font color=red>D+2</font>.
+# We provide 5-day windows of time, days D-2, D-1,
+# D, D+1, and D+2. You are given returns in days
+# D-2, D-1, and
+# part of day D, and you are asked to predict the returns in the rest of day D, and in days
+# D+1 and D+2.
 #
-# During day <font color=red>D</font>, there is intraday return data, which are the returns at different points in
+# During day D, there is intraday return data, which are the returns at different points in
 # the day. We provide
-# 180 minutes of data, from <font color=blue>t=1</font> to <font color=blue>t=180</font>. In the training set, you are given
+# 180 minutes of data, from t=1 to t=180. In the training set, you are given
 # the full 180 minutes, in the test
 # set just the first 120 minutes are provided.
 #
-# For each <font color=green>5-day window</font>, we also provide 25 features, <font color=blue>Feature_1</font>
-# to <font color=blue>Feature_25</font>. These may or may not be useful
+# For each 5-day window, we also provide 25 features, Feature_1
+# to Feature_25. These may or may not be useful
 # in your prediction.
 #
-# Each row in the dataset is an arbitrary stock at an <font color=green>arbitrary 5 day time window</font>.
+# Each row in the dataset is an arbitrary stock at an arbitrary 5 day time window.
 #
 # How these returns are calculated is defined by Winton, and will not to be revealed to you in this competition.
 # The data set is designed to be representative of real data and so should bring about a number of challenges.
@@ -95,7 +95,7 @@
 # %% [markdown]
 ### **1.2 Evaluation** <a class="anchor" id="evaluation"></a>
 #
-# Submissions are evaluated using the <font color=green>Weighted Mean Absolute Error</font>. Each return
+# Submissions are evaluated using the Weighted Mean Absolute Error. Each return
 # you predicted is compared with the actual return. The formula is then
 #
 # $$
@@ -110,16 +110,16 @@
 # %% [markdown]
 ### **1.3 Submission** <a class="anchor" id="submission"></a>
 #
-# The submission file should contain two columns: <font color=yellow>Id</font> and <font color=red>Predicted</font>.
-# For <font color=green>each 5-day window, you need to predict 62
-# returns</font>. For example, for the first time window, you will predict <font color=red>1_1</font>, <font color=red>1_2</font>,
-# to <font color=red>1_62</font>. <font color=red>1_1</font> to <font color=red>1_60</font> are predicting
-# <font color=red>Ret_121</font> through <font color=red>Ret_180</font>, <font color=red>1_61</font> the prediction for
-# <font color=red>Ret_PlusOne</font>, and <font color=red>1_62</font> the prediction for <font color=red>Ret_PlusTwo</font>.
+# The submission file should contain two columns: <font color=yellow>Id and Predicted.
+# For each 5-day window, you need to predict 62
+# returns. For example, for the first time window, you will predict 1_1, 1_2,
+# to 1_62. 1_1 to 1_60 are predicting
+# Ret_121 through Ret_180, 1_61 the prediction for
+# Ret_PlusOne, and 1_62 the prediction for Ret_PlusTwo.
 #
 # The file should contain a header and have the following format:
 #
-#   <font color=yellow>Id</font>, <font color=red>Predicted</font>
+#   <font color=yellow>Id, Predicted
 #   1_1,0
 #   1_2,0
 #   1_3,0
@@ -137,17 +137,17 @@
 ### **1.4 File Descriptions** <a class="anchor" id="file_descriptions"></a>
 #
 # - train.csv - the training set, including the columns of:
-#   - <font color=blue>Feature_1</font> - <font color=blue>Feature_25</font>
-#   - <font color=blue>Ret_MinusTwo</font>, <font color=blue>Ret_MinusOne</font>
-#   - <font color=blue>Ret_2</font> - <font color=blue>Ret_120</font>
-#   - <font color=red>Ret_121</font> - <font color=red>Ret_180</font>: target variables
-#   - <font color=red>Ret_PlusOne</font>, <font color=red>Ret_PlusTwo</font>: target variables
+#   - Feature_1 - Feature_25
+#   - Ret_MinusTwo, Ret_MinusOne
+#   - Ret_2 - Ret_120
+#   - Ret_121 - Ret_180: target variables
+#   - Ret_PlusOne, Ret_PlusTwo: target variables
 #   - Weight_Intraday, Weight_Daily
 #
 # - test.csv - the test set, including the columns of:
-#   - <font color=blue>Feature_1</font> - <font color=blue>Feature_25</font>
-#   - <font color=blue>Ret_MinusTwo</font>, <font color=blue>Ret_MinusOne</font>
-#   - <font color=blue>Ret_2</font> - <font color=blue>Ret_120</font>
+#   - Feature_1 - Feature_25
+#   - Ret_MinusTwo, Ret_MinusOne
+#   - Ret_2 - Ret_120
 #
 #
 # - sample_submission.csv - a sample submission file in the correct format
@@ -155,21 +155,21 @@
 # %% [markdown]
 ### **1.5 Data Fields** <a class="anchor" id="data_fields"></a>
 #
-# - <font color=blue>Feature_1</font> to <font color=blue>Feature_25</font>: different features relevant to prediction
-# - <font color=blue>Ret_MinusTwo</font>: this is the return from the close of trading on day <font color=blue>D-2</font> to the close of trading
-#   on day <font color=blue>D-1</font> (i.e. 1 day)
-# - <font color=blue>Ret_MinusOne</font>: this is the return from the close of trading on day <font color=blue>D-1</font> to the point at which the
-#   intraday returns start on day <font color=blue>D</font> (approximately 1/2 day)
-# - <font color=blue>Ret_2</font> to <font color=blue>Ret_120</font>: these are returns over approximately one minute on day <font color=blue>D</font>.
-#   <font color=blue>Ret_2</font> is the return between <font color=blue>t=1</font> and <font color=blue>t=2</font>.
-# - <font color=red>Ret_121</font> to <font color=red>Ret_180</font>: intraday returns over approximately one minute on day <font color=red>D</font>. These are the target
-#   variables you need to predict as <font color=red>{id}_{1-60}</font>.
-# - <font color=red>Ret_PlusOne</font>: this is the return from the time <font color=red>Ret_180</font> is measured on day <font color=red>D</font> to the close of
-#   trading on day <font color=red>D+1</font>. (approximately 1 day). This is a target variable you need to predict as <font color=red>{id}_61</font>.
-# - <font color=red>Ret_PlusTwo</font>: this is the return from the close of trading on day <font color=red>D+1</font> to the close of trading
-#   on day <font color=red>D+2</font> (i.e. 1 day) This is a target variable you need to predict as <font color=red>{id}_62</font>.
-# - Weight_Intraday: weight used to evaluate intraday return predictions <font color=red>Ret 121</font> to <font color=red>180</font>
-# - Weight_Daily: weight used to evaluate daily return predictions (<font color=red>Ret_PlusOne</font> and <font color=red>Ret_PlusTwo</font>).
+# - Feature_1 to Feature_25: different features relevant to prediction
+# - Ret_MinusTwo: this is the return from the close of trading on day D-2 to the close of trading
+#   on day D-1 (i.e. 1 day)
+# - Ret_MinusOne: this is the return from the close of trading on day D-1 to the point at which the
+#   intraday returns start on day D (approximately 1/2 day)
+# - Ret_2 to Ret_120: these are returns over approximately one minute on day D.
+#   Ret_2 is the return between t=1 and t=2.
+# - Ret_121 to Ret_180: intraday returns over approximately one minute on day D. These are the target
+#   variables you need to predict as {id}_{1-60}.
+# - Ret_PlusOne: this is the return from the time Ret_180 is measured on day D to the close of
+#   trading on day D+1. (approximately 1 day). This is a target variable you need to predict as {id}_61.
+# - Ret_PlusTwo: this is the return from the close of trading on day D+1 to the close of trading
+#   on day D+2 (i.e. 1 day) This is a target variable you need to predict as {id}_62.
+# - Weight_Intraday: weight used to evaluate intraday return predictions Ret 121 to 180
+# - Weight_Daily: weight used to evaluate daily return predictions (Ret_PlusOne and Ret_PlusTwo).
 
 # %% [markdown]
 ## **2. Preparation** <a class="anchor" id="preparation"></a>
@@ -268,9 +268,9 @@ random.seed(SEED)
 ### **2.3 Data Loading** <a class="anchor" id="data_loading"></a>
 #
 # Here we perform initial data processing. We will be using Pandas Dataframes throughout the solution.
-# We will need to sort the data frame by <font color=blue>Feature_7</font> - the reason for this will become apparent in the
-# [Data Analysis](#data_analysis) section. We will also aggregate the intraday return features <font color=blue>Ret_2</font>
-# <font color=blue>Ret_121</font> as a new feature called <font color=blue>Ret_Agg</font>.
+# We will need to sort the data frame by Feature_7 - the reason for this will become apparent in the
+# [Data Analysis](#data_analysis) section. We will also aggregate the intraday return features Ret_2
+# Ret_121 as a new feature called Ret_Agg.
 
 # %%
 #
@@ -329,9 +329,9 @@ print(f'Shape of test feature data: {test_X_df.shape}')
 # %% [markdown]
 ### **3.1 Analysis Constrains** <a class="anchor" id="analysis_constrains"></a>
 #
-# In the interest of time we will focus only on predicting <font color=red>Ret_PlusOne</font> and <font color=red>Ret_PlusTwo.</font> To further justify this, we also note
+# In the interest of time we will focus only on predicting Ret_PlusOne and Ret_PlusTwo. To further justify this, we also note
 # that intraday one min data is **_likely_** to be too noisy to be predictied by the data given in this competition. Hence we will only
-# output predictions for <font color=red>{id}_61</font> and <font color=red>{id}_62</font> and output 0 for all of <font color=red>{id}_{1-60}</font>.
+# output predictions for {id}_61 and {id}_62 and output 0 for all of {id}_{1-60}.
 
 # %% [markdown]
 ### **3.2 Data Analysis** <a class="anchor" id="data_analysis"></a>
@@ -392,18 +392,18 @@ if ANALYSE_DATA:
 # %% [markdown]
 # From this analysis we observe the following:
 #
-# - <font color=blue>Feature_1</font> has a very high number of missing values. It is likely that dropping this feature will improve model performance.
+# - Feature_1 has a very high number of missing values. It is likely that dropping this feature will improve model performance.
 #
-# - <font color=blue>Feature_1</font>, <font color=blue>Feature_5</font>, <font color=blue>Feature_7</font>, <font color=blue>Feature_8</font>, <font color=blue>Feature_9</font>, <font color=blue>Feature_12</font>, <font color=blue>Feature_13</font>, <font color=blue>Feature_16</font> and <font color=blue>Feature_20</font> contains few
+# - Feature_1, Feature_5, Feature_7, Feature_8, Feature_9, Feature_12, Feature_13, Feature_16 and Feature_20 contains few
 #   uniqe values. These features are therefore determined to be categorical.
 #
-# - <font color=blue>Feature_15</font> is highly imbalanced.
+# - Feature_15 is highly imbalanced.
 #
-# - Besides being categorical, <font color=blue>Feature_6</font> and <font color=blue>Feature_7</font> are also distinct between the training and the test data sets.
-#   However, <font color=blue>Feature_6</font> is highly unique, whereas <font color=blue>Feature_7</font> only contains relatively few unique values.
+# - Besides being categorical, Feature_6 and Feature_7 are also distinct between the training and the test data sets.
+#   However, Feature_6 is highly unique, whereas Feature_7 only contains relatively few unique values.
 #
-# This leaves <font color=blue>Feature_7</font> as a special feature. We will try investigate this feature more thoroughly, by grouping returns by values of <font color=blue>Feature_7</font> and
-# look for a relationship in the sign of the returns to see if equal values of <font color=blue>Feature_7</font> has correlated returns.
+# This leaves Feature_7 as a special feature. We will try investigate this feature more thoroughly, by grouping returns by values of Feature_7 and
+# look for a relationship in the sign of the returns to see if equal values of Feature_7 has correlated returns.
 
 # %%
 if ANALYSE_DATA:
@@ -426,8 +426,8 @@ if ANALYSE_DATA:
     print(f'Frequence of return signs: {freq}')
 
 # %% [markdown]
-# We observe that the sign of the returns within each group is almost 100% correlated. Regardless of what the nature of <font color=blue>Feature_7</font> is,
-# we have to account for this relationship when doing model cross-validation to avoid data leakage. Most likely, <font color=blue>Feature_7</font>
+# We observe that the sign of the returns within each group is almost 100% correlated. Regardless of what the nature of Feature_7 is,
+# we have to account for this relationship when doing model cross-validation to avoid data leakage. Most likely, Feature_7
 # has a relationship to time, which would explain why returns within the groups are correlated.
 
 # %% [markdown]
@@ -435,7 +435,7 @@ if ANALYSE_DATA:
 #
 # We will try to get a better understanding of the properties of the different features by plotting
 # the features mutual correlations, the distributions of the features and regression plots for the features
-# to see how they relate to the targets (for ease we are only looking at <font color=red>Ret_PluOne</font>
+# to see how they relate to the targets (for ease we are only looking at Ret_PluOne
 # in the regression plots). To make data plotting faster, we will only look at a sample of 10% of the data.
 
 # %%
@@ -522,15 +522,15 @@ if SHOWPLOTS:
 # correlation with targets (apparent from both the correlation heatmap and the regression plots). Ve also observe
 # a high correlation between some of the numerical features - in fact there seems to be 3 distinct clusters of correlation:
 #
-# - [<font color=blue>Feature_3</font> - <font color=blue>Feature_11</font>] correlates with [<font color=blue>Feature_3</font> - <font color=blue>Feature_11</font>]
-# - [<font color=blue>Feature_3</font> - <font color=blue>Feature_11</font>] correlates with [<font color=blue>Feature_17</font> - <font color=blue>Feature_25</font>]
-# - [<font color=blue>Feature_17</font> - <font color=blue>Feature_25</font>] correlates with [<font color=blue>Feature_17</font> - <font color=blue>Feature_25</font>]
+# - [Feature_3 - Feature_11] correlates with [Feature_3 - Feature_11]
+# - [Feature_3 - Feature_11] correlates with [Feature_17 - Feature_25]
+# - [Feature_17 - Feature_25] correlates with [Feature_17 - Feature_25]
 #
 # within the numerical features. This is probably not coincidental, and it is likely that an optimal solution needs to take advantage of these relationships.
 # In this solution, however, we will not investigate it further. We also observer that most of the feature distributions does not
 # appear to be gaussian. We will deal with these issues in the [Data Preprocessing](#data_preprocessing) section.
 #
-# Finally, we observe that <font color=blue>Feature_13</font> has a relatively "smooth" distribution. We suspect that this feature
+# Finally, we observe that Feature_13 has a relatively "smooth" distribution. We suspect that this feature
 # might contain ordered information.
 
 
@@ -541,7 +541,7 @@ if SHOWPLOTS:
 ### **4.1 Feature Selection** <a class="anchor" id="feature_selection"></a>
 #
 # We will be using a robust preprocessing and modelling approach - hence, we include all features. Based on the above analysis, we split the features into
-# numerical and categorical. We further split categorical into ordered (<font color=blue>Feature_13</font>) and unordered.
+# numerical and categorical. We further split categorical into ordered (Feature_13) and unordered.
 
 # %%
 # Define final features
@@ -749,7 +749,7 @@ if (SHOWPLOTS_PROCCESED):
 #
 # We will focus on LinearSVR regression (wrapper for liblinear) with l2 regularization, as this method seems to deals particullary well
 # with data with a very low Signal-to-noise ratio as one would expect from financial data. It is also a very fast algorithm (liblinear is heavily optimized).
-# We will do a grid search with 5-fold GroupKFold cross-validation. As mentioned earlier, the fact that returns are not independent of <font color=blue>Feature_7</font>, we will have
+# We will do a grid search with 5-fold GroupKFold cross-validation. As mentioned earlier, the fact that returns are not independent of Feature_7, we will have
 # to group our cross-validation in order to avoid data leakage and hence overestimation of the CV performance*.
 #
 # Ideally, we should optimize using a loss function suitable for optimizing Weighed Mean Absolute Error (which is non-differentiable at 0). We did not
@@ -857,8 +857,8 @@ pred_test_Y = best_estimator.predict(test_X_df)
 # %% [markdown]
 # We observe that the model seems to perform significantly better than the baseline model.
 #
-# To put this into perspective, there where <font color=green>832</font> teams participating in the Kaggle competition. This solution has a Private Score of <font color=green>1727.86647</font> and
-# a Public Score of <font color=green>1769.92199</font> and would have ranked as number <font color=green>4</font> (top <font color=green>0.5%</font>) on the Private Leaderboard.
+# To put this into perspective, there where 832 teams participating in the Kaggle competition. This solution has a Private Score of 1727.86647 and
+# a Public Score of 1769.92199 and would have ranked as number 4 (top 0.5%) on the Private Leaderboard.
 
 # %% [markdown]
 ### **5.3 Save Model Output** <a class="anchor" id="save_model_output"></a>
